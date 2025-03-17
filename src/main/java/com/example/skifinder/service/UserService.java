@@ -23,6 +23,13 @@ public class UserService {
         return equipmentRepository.findByBookingsUserId(userId);
     }
 
+    public List<Equipment> getOwnedEquipment(Long userId) {
+        // Filtra tutta l’attrezzatura e trova quella in cui Equipment.user.id == userId
+        return equipmentRepository.findAll().stream()
+                .filter(e -> e.getUser() != null && e.getUser().getId().equals(userId))
+                .toList();
+    }
+
     public User addUser(User user) {
         return userRepository.save(user);
     }

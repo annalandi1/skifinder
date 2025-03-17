@@ -1,25 +1,37 @@
 package com.example.skifinder.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
 @Entity
-@Table(name = "app_user")
+@Table(name = "users")
+@Getter
+@Setter
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name; // Nome dell'utente
-    private String email; // Email dell'utente
-    private String password; // Password dell'utente
+    // Se vuoi tenere lo username come campo separato, puoi lasciarlo unique, ma non
+    // obbligatorio
+    @Column(unique = true)
+    private String username;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Equipment> equipmentList; // Attrezzature possedute dall'utente
+    @Column(unique = true)
+    private String email; // Per login tramite email
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Booking> bookings; // Prenotazioni effettuate dall'utente
+    @Column(unique = true)
+    private String phoneNumber; // Per login tramite telefono
+
+    @Column(nullable = false)
+    private String password;
+
+    // Dati opzionali del profilo
+    private String name; // Nome
+    private String surname; // Cognome
+    private String photo; // URL / path a foto profilo
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
 }
