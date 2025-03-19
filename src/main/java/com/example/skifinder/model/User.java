@@ -7,6 +7,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "users")
 @Getter
+
 @Setter
 public class User {
     @Id
@@ -21,7 +22,7 @@ public class User {
     @Column(unique = true)
     private String email; // Per login tramite email
 
-    @Column(unique = true)
+    @Column(name = "phonenumber", unique = true)
     private String phoneNumber; // Per login tramite telefono
 
     @Column(nullable = false)

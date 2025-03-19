@@ -16,13 +16,15 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String login) throws UsernameNotFoundException {
-        // 1) cerco l’utente per username
+        System.out.println("loadUserByUsername: login ricevuto = " + login);
+
+        // Cerca l'utente per username
         Optional<User> optUser = userRepository.findByUsername(login);
         if (optUser.isEmpty()) {
-            // 2) provo email
+            // Se non trovato, cerca per email
             optUser = userRepository.findByEmail(login);
             if (optUser.isEmpty()) {
-                // 3) provo phone
+                // Se non trovato, cerca per phoneNumber
                 optUser = userRepository.findByPhoneNumber(login);
                 if (optUser.isEmpty()) {
                     throw new UsernameNotFoundException("Utente non trovato: " + login);
@@ -31,17 +33,18 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
 
         User user = optUser.get();
+        System.out.println("Utente trovato: " + preferredLogin(user));
 
-        // Converto 'User' in un 'UserDetails' di Spring Security
-        // (che include username, password, e roles/authorities)
         return org.springframework.security.core.userdetails.User.builder()
-                .username(preferredLogin(user)) // per "username" ci mettiamo username/email/phone
-                .password(user.getPassword()) // password hashed
-                .roles(user.getRole().name()) // ruoli
+                .username(preferredLogin(user))
+                .password(user.getPassword())
+                .roles(user.getRole().name())
                 .build();
     }
 
-    // Se vuoi, decidi quale campo mostrare come "username" preferito
+    /**
+     * Restituisce il primo valore disponibile tra username, email o phoneNumber
+     */
     private String preferredLogin(User user) {
         if (user.getUsername() != null && !user.getUsername().isEmpty()) {
             return user.getUsername();

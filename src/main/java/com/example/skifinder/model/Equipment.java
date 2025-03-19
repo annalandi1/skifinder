@@ -16,7 +16,8 @@ public class Equipment {
     private String description; // Descrizione dell'attrezzatura
     private double price; // Prezzo di noleggio
     private String size; // Taglia (es. "42", "170cm")
-    private String type; // Tipo di attrezzatura (es. "Sci", "Scarponi")
+    private String type;
+    @Column(nullable = false)
     private boolean isAvailable = true; // disponibilità
 
     @ManyToOne
