@@ -14,23 +14,27 @@ public class PreferenceController {
     @Autowired
     private PreferenceService preferenceService;
 
+    // 🔹 Ottieni tutte le preferenze
     @GetMapping
     public List<Preference> getAllPreferences() {
         return preferenceService.getAllPreferences();
     }
 
+    // 🔹 Aggiungi una preferenza (passando userId ed equipmentId)
     @PostMapping
-    public Preference addPreference(@RequestBody Preference preference) {
-        return preferenceService.addPreference(preference);
+    public Preference addPreference(@RequestParam Long userId, @RequestParam Long equipmentId) {
+        return preferenceService.addPreference(userId, equipmentId);
     }
 
+    // 🔹 Ottieni le preferenze di un utente
     @GetMapping("/user")
     public List<Preference> getPreferencesByUserId(@RequestParam Long userId) {
         return preferenceService.getPreferencesByUserId(userId);
     }
 
-    @DeleteMapping("/{id}")
-    public void removePreference(@PathVariable Long id) {
-        preferenceService.removePreference(id);
+    // 🔹 Rimuovi una preferenza (passando userId ed equipmentId)
+    @DeleteMapping
+    public void removePreference(@RequestParam Long userId, @RequestParam Long equipmentId) {
+        preferenceService.removePreference(userId, equipmentId);
     }
 }

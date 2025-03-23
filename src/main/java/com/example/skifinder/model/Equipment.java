@@ -15,14 +15,18 @@ public class Equipment {
     private String name; // Nome dell'attrezzatura
     private String description; // Descrizione dell'attrezzatura
     private double price; // Prezzo di noleggio
-    private String size; // Taglia (es. "42", "170cm")
+    private String size; // Taglia (cm, EU, XS-S-M-L-XL, vuoto se non necessario)
     private String type;
+    private String macroCategory; // Macro categoria per gestione automatica delle taglie
+
     @Column(nullable = false)
     private boolean isAvailable = true; // disponibilità
 
+    private List<String> imagePaths; // Nuovo campo per il percorso dell'immagine
+
     @ManyToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User user; // Utente proprietario dell'attrezzatura (opzionale)
+    private User user; // Utente proprietario dell'attrezzatura
 
     @ManyToOne
     @JoinColumn(name = "location_id", referencedColumnName = "id")
