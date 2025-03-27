@@ -2,7 +2,6 @@ package com.example.skifinder.configuration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import com.stripe.Stripe;
 
@@ -15,9 +14,10 @@ public class StripeConfig {
 
     public StripeConfig(StripeProperties stripeProperties) {
         this.stripeProperties = stripeProperties;
+        initStripe();
     }
 
-    @Bean
+    // Metodo per inizializzare la chiave Stripe
     public void initStripe() {
         Stripe.apiKey = stripeProperties.getSecretKey();
         if (Stripe.apiKey == null || Stripe.apiKey.isBlank()) {
@@ -25,6 +25,5 @@ public class StripeConfig {
         } else {
             logger.info("✅ Stripe API key configurata correttamente.");
         }
-
     }
 }

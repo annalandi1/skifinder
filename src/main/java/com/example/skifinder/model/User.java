@@ -14,8 +14,6 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Se vuoi tenere lo username come campo separato, puoi lasciarlo unique, ma non
-    // obbligatorio
     @Column(unique = true)
     private String username;
 
@@ -29,9 +27,11 @@ public class User {
     private String password;
 
     // Dati opzionali del profilo
-    private String name; // Nome
-    private String surname; // Cognome
-    private String photo; // URL / path a foto profilo
+    private String name;
+    private String surname;
+
+    @Column(name = "photo")
+    private String photo; // URL a foto profilo
 
     @Enumerated(EnumType.STRING)
     private Role role;

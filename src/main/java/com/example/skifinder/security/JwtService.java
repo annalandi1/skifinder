@@ -23,13 +23,20 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long jwtExpirationMs;
 
+    public void checkSecret() {
+        System.out.println("Secret Key: " + secretKey);
+    }
+
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        System.out.println("Decoded secret key: " + new String(keyBytes));
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+        final String username = extractClaim(token, Claims::getSubject);
+        System.out.println("🧠 [JwtService] Username (sub) nel token: " + username);
+        return username;
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

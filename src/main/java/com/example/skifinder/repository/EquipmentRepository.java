@@ -13,4 +13,6 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
     @Query("SELECT e FROM Equipment e JOIN e.bookings b WHERE b.user.id = :userId")
     List<Equipment> findByBookingsUserId(@Param("userId") Long userId);
+
+    List<Equipment> findByUserId(Long userId);
 }

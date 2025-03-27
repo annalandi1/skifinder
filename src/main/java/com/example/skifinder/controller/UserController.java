@@ -45,16 +45,11 @@ public class UserController {
     }
 
     /**
-     * Crea un nuovo utente
+     * Crea un nuovo utente (sconsigliato se non necessario)
      * POST /api/users
-     * ATTENZIONE:
-     * - Non c’è password encoding qui (è già in AuthController).
-     * - Se vuoi fare la stessa logica di registrazione, puoi aggiungere l'encoder.
      */
     @PostMapping
     public User addUser(@RequestBody User user) {
-        // Se non vuoi replicare la logica di hashing,
-        // stai attento a non salvare password in chiaro.
         return userService.addUser(user);
     }
 }

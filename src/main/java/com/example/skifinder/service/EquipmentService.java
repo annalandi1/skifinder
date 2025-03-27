@@ -24,9 +24,15 @@ public class EquipmentService {
         return equipmentRepository.findById(id);
     }
 
+    public List<Equipment> getEquipmentByUserId(Long userId) {
+        return equipmentRepository.findByUserId(userId); // Metodo già presente nel repository
+    }
+
     public Equipment addEquipment(Equipment equipment) {
+        System.out.println("Sto salvando attrezzatura per utente: " + equipment.getUser().getUsername());
         // Imposta automaticamente il formato della taglia in base al tipo
         equipment.setSize(formatSizeByType(equipment.getType(), equipment.getSize()));
+
         return equipmentRepository.save(equipment);
     }
 
