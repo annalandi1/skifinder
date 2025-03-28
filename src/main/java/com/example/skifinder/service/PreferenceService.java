@@ -8,6 +8,8 @@ import com.example.skifinder.repository.UserRepository;
 import com.example.skifinder.repository.EquipmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -30,40 +32,39 @@ public class PreferenceService {
         return preferenceRepository.findAll();
     }
 
-    // 🔹 Aggiunge una preferenza (solo per utenti con ruolo CLIENTE)
-    public Preference addPreference(Long userId, Long equipmentId) {
-        User user = userRepository.findById(userId)
+    public Preference addPreference(String username, Long equipmentId) {
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Utente non trovato"));
+
         Equipment equipment = equipmentRepository.findById(equipmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attrezzatura non trovata"));
 
-        // Verifica che l'utente sia CLIENTE
-        if ("CLIENTE".equals(user.getRole().name())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Solo gli utenti CLIENTE possono aggiungere preferiti");
-        }
-
-        // Evita duplicati
-        if (preferenceRepository.findByUserId(userId).stream()
+        if (preferenceRepository.findByUserId(user.getId()).stream()
                 .anyMatch(p -> p.getEquipment().getId().equals(equipmentId))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "L'attrezzatura è già nei preferiti");
         }
 
-        Preference preference = new Preference();
-        preference.setUser(user);
-        preference.setEquipment(equipment);
+        Preference preference = new Preference(user, equipment);
         return preferenceRepository.save(preference);
     }
 
-    // 🔹 Recupera le preferenze di un utente specifico
-    public List<Preference> getPreferencesByUserId(Long userId) {
-        return preferenceRepository.findByUserId(userId);
+    public List<Preference> getPreferencesByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Utente non trovato"));
+
+        return preferenceRepository.findByUserId(user.getId());
     }
 
-    // 🔹 Rimuove una preferenza (solo se appartiene all'utente)
-    public void removePreference(Long userId, Long equipmentId) {
-        List<Preference> userPreferences = preferenceRepository.findByUserId(userId);
-        Optional<Preference> preferenceToRemove = userPreferences.stream()
+    // Rimuove una preferenza (solo se appartiene all'utente)
+    public void removePreference(UserDetails userDetails, Long equipmentId) {
+        // Trova l'utente a partire dallo username contenuto nel token JWT
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("Utente non trovato"));
+
+        // Trova la preferenza dell'utente per quella specifica attrezzatura
+        Optional<Preference> preferenceToRemove = preferenceRepository
+                .findByUserId(user.getId())
+                .stream()
                 .filter(p -> p.getEquipment().getId().equals(equipmentId))
                 .findFirst();
 
@@ -73,4 +74,5 @@ public class PreferenceService {
 
         preferenceRepository.delete(preferenceToRemove.get());
     }
+
 }

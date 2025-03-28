@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.web.util.UriUtils;
 
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,59 +23,44 @@ public class GeoapifyService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public Location geocode(String address) {
-        System.out.println("📍 Tentativo di geocodifica per: " + address);
-        Location location = attemptGeocode(address);
-
-        if (location != null)
-            return location;
-
-        // 🔁 Fallback: rimuove la parte tedesca tipo " - Bozen" o " - Fagenstraße"
-        String fallbackAddress = address.replaceAll(" - [^,]+", "");
-        System.out.println("⚠️ Primo tentativo fallito, provo fallback con: " + fallbackAddress);
-
-        location = attemptGeocode(fallbackAddress);
-
-        if (location != null)
-            return location;
-
-        // 🔁 Fallback 2: prendo solo città e CAP
-        String extremeFallback = extractCityAndCapOnly(address);
-        System.out.println("⛑️ Ultimo fallback con solo città e CAP: " + extremeFallback);
-
-        location = attemptGeocode(extremeFallback);
-
-        if (location == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Nessun risultato trovato per l'indirizzo (anche con fallback): " + address);
-        }
-
-        return location;
-    }
-
-    private Location attemptGeocode(String address) {
+    public Location geocode(String indirizzo) {
         try {
-            String json = restTemplate.getForObject(buildUrl(address), String.class);
-            return parseGeocodeResponse(json, address);
-        } catch (Exception e) {
-            System.out.println("❌ Errore durante il tentativo di geocodifica: " + e.getMessage());
-            return null;
-        }
-    }
+            UriComponentsBuilder builder = UriComponentsBuilder
+                    .fromUriString("https://api.geoapify.com/v1/geocode/search")
+                    .queryParam("text", indirizzo)
+                    .queryParam("lang", "it")
+                    .queryParam("limit", 1)
+                    .queryParam("apiKey", apiKey);
 
-    private String buildUrl(String address) {
-        String encodedAddress = UriUtils.encode(address, StandardCharsets.UTF_8);
-        return "https://api.geoapify.com/v1/geocode/search?text=" + encodedAddress + "&apiKey=" + apiKey;
-    }
+            URI uri = builder.build().toUri();
 
-    private String extractCityAndCapOnly(String address) {
-        String[] parts = address.split(",");
-        for (String part : parts) {
-            if (part.matches(".*\\d{5}.*")) {
-                return part.trim();
+            String json = restTemplate.getForObject(uri, String.class);
+            System.out.println("📦 Risposta Geoapify:\n" + json); // Debug
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(json);
+            JsonNode features = root.path("features");
+
+            if (features.isArray() && features.size() > 0) {
+                JsonNode geometry = features.get(0).path("geometry");
+                JsonNode properties = features.get(0).path("properties");
+
+                double lat = geometry.path("coordinates").get(1).asDouble();
+                double lon = geometry.path("coordinates").get(0).asDouble();
+                String name = properties.path("city").asText(); // es: "Merano"
+                String address = properties.path("formatted").asText(); // es: "Via Roma 5, 39012 Merano"
+
+                return new Location(name, address, lat, lon);
             }
+
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Nessun risultato trovato per l'indirizzo: " + indirizzo);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Errore nel parsing della geocodifica", e);
         }
-        return address;
     }
 
     public String reverseGeocode(double lat, double lon) {
@@ -83,6 +68,7 @@ public class GeoapifyService {
             String url = UriComponentsBuilder.fromUriString("https://api.geoapify.com/v1/geocode/reverse")
                     .queryParam("lat", lat)
                     .queryParam("lon", lon)
+                    .queryParam("lang", "it")
                     .queryParam("apiKey", apiKey)
                     .toUriString();
 
@@ -98,6 +84,8 @@ public class GeoapifyService {
         try {
             String url = UriComponentsBuilder.fromUriString("https://api.geoapify.com/v1/geocode/autocomplete")
                     .queryParam("text", query)
+                    .queryParam("lang", "it")
+                    .queryParam("limit", 5)
                     .queryParam("apiKey", apiKey)
                     .toUriString();
 
@@ -105,34 +93,6 @@ public class GeoapifyService {
             return parseAutocompleteResponse(autocompleteResult);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Errore durante l'autocompletamento",
-                    e);
-        }
-    }
-
-    private Location parseGeocodeResponse(String jsonResponse, String address) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode rootNode = objectMapper.readTree(jsonResponse);
-            JsonNode featuresArray = rootNode.path("features");
-
-            if (!featuresArray.isArray() || featuresArray.size() == 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Nessun risultato trovato per l'indirizzo: " + address);
-            }
-
-            JsonNode featuresNode = featuresArray.get(0).path("properties");
-
-            double lat = featuresNode.path("lat").asDouble();
-            double lon = featuresNode.path("lon").asDouble();
-
-            Location location = new Location();
-            location.setName(address);
-            location.setLatitude(lat);
-            location.setLongitude(lon);
-
-            return location;
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Errore nel parsing della geocodifica",
                     e);
         }
     }

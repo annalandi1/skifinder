@@ -236,4 +236,14 @@ public class EquipmentController {
         Equipment equipment = optionalEquipment.get();
         return ResponseEntity.ok(equipment.getImagePaths());
     }
+
+    @GetMapping("/nearby")
+    public ResponseEntity<List<Equipment>> getNearbyEquipment(
+            @RequestParam double lat,
+            @RequestParam double lon,
+            @RequestParam double radiusKm) {
+        List<Equipment> nearby = equipmentService.findNearbyEquipment(lat, lon, radiusKm);
+        return ResponseEntity.ok(nearby);
+    }
+
 }

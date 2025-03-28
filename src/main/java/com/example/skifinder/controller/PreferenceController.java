@@ -3,6 +3,8 @@ package com.example.skifinder.controller;
 import com.example.skifinder.model.Preference;
 import com.example.skifinder.service.PreferenceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,27 +16,30 @@ public class PreferenceController {
     @Autowired
     private PreferenceService preferenceService;
 
-    // 🔹 Ottieni tutte le preferenze
+    // Ottieni tutte le preferenze
     @GetMapping
     public List<Preference> getAllPreferences() {
         return preferenceService.getAllPreferences();
     }
 
-    // 🔹 Aggiungi una preferenza (passando userId ed equipmentId)
+    // Aggiungi una preferenza
     @PostMapping
-    public Preference addPreference(@RequestParam Long userId, @RequestParam Long equipmentId) {
-        return preferenceService.addPreference(userId, equipmentId);
+    public Preference addPreference(@AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam Long equipmentId) {
+        return preferenceService.addPreference(userDetails.getUsername(), equipmentId);
     }
 
-    // 🔹 Ottieni le preferenze di un utente
+    // Ottieni le preferenze dell'utente autenticato
     @GetMapping("/user")
-    public List<Preference> getPreferencesByUserId(@RequestParam Long userId) {
-        return preferenceService.getPreferencesByUserId(userId);
+    public List<Preference> getPreferencesByUser(@AuthenticationPrincipal UserDetails userDetails) {
+        return preferenceService.getPreferencesByUsername(userDetails.getUsername());
     }
 
-    // 🔹 Rimuovi una preferenza (passando userId ed equipmentId)
+    // Rimuovi una preferenza (passando userId ed equipmentId)
     @DeleteMapping
-    public void removePreference(@RequestParam Long userId, @RequestParam Long equipmentId) {
-        preferenceService.removePreference(userId, equipmentId);
+    public void removePreference(@AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam Long equipmentId) {
+        preferenceService.removePreference(userDetails, equipmentId);
     }
+
 }

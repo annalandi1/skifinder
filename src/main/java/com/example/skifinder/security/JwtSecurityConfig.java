@@ -15,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 public class JwtSecurityConfig {
@@ -28,19 +29,29 @@ public class JwtSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Manteniamo disabilitato il CSRF
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/api/auth/**").permitAll() // Permettiamo l'accesso alle API
-                                                                                 // di autenticazione
+                        // ✅ Endpoints pubblici (visibili anche senza login)
+                        .requestMatchers("/auth/**", "/api/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers("/api/users/**").authenticated() // Proteggiamo gli endpoint API
-                        .requestMatchers("/api/equipment/**").hasRole("NOLEGGIATORE") // Solo i NOLEGGIATORI possono
+                        .requestMatchers(HttpMethod.GET, "/api/equipment/**").permitAll() // Tutti possono vedere
+                                                                                          // l'equipment
 
-                        .anyRequest().authenticated()) // Tutte le altre richieste devono essere autenticate
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Nessuna
-                                                                                                        // sessione
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class) // Aggiungi il filtro JWT
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())); // Configura CORS
+                        // 🔐 Endpoints protetti (solo utenti autenticati)
+                        .requestMatchers("/api/users/**").authenticated()
+                        .requestMatchers("/api/preference/**").authenticated()
+                        .requestMatchers("/api/bookings/**").authenticated() // tutte le bookings (user, equipment,
+                                                                             // creazione ecc.)
+
+                        // 👤 Solo i noleggiatori possono fare POST/PUT/DELETE su equipment
+                        .requestMatchers(HttpMethod.POST, "/api/equipment/**").hasRole("NOLEGGIATORE")
+                        .requestMatchers(HttpMethod.PUT, "/api/equipment/**").hasRole("NOLEGGIATORE")
+                        .requestMatchers(HttpMethod.DELETE, "/api/equipment/**").hasRole("NOLEGGIATORE")
+
+                        .anyRequest().authenticated())
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
         return http.build();
     }

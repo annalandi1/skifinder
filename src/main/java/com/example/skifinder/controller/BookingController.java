@@ -4,7 +4,9 @@ import com.example.skifinder.model.Booking;
 import com.example.skifinder.model.BookingStatus;
 import com.example.skifinder.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -17,38 +19,49 @@ public class BookingController {
     @Autowired
     private BookingService bookingService;
 
+    // Crea una prenotazione
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public Booking createBooking(
-            @RequestParam Long userId,
+    public ResponseEntity<Booking> createBooking(
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam Long equipmentId,
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
-        return bookingService.createBooking(
-                userId,
-                equipmentId,
-                LocalDate.parse(startDate),
-                LocalDate.parse(endDate));
+            @RequestParam LocalDate startDate,
+            @RequestParam LocalDate endDate) {
+        Booking booking = bookingService.createBooking(userDetails, equipmentId, startDate, endDate);
+        return ResponseEntity.ok(booking);
     }
 
-    @GetMapping("/user/{userId}")
-    public List<Booking> getUserBookings(@PathVariable Long userId) {
-        return bookingService.getUserBookings(userId);
+    // Ottieni tutte le prenotazioni per una specifica attrezzatura
+    @GetMapping("/equipment/{equipmentId}")
+    public ResponseEntity<List<Booking>> getBookingsByEquipment(@PathVariable Long equipmentId) {
+        return ResponseEntity.ok(bookingService.getBookingsByEquipment(equipmentId));
     }
 
-    @PutMapping("/{bookingId}/confirm")
-    public Booking confirmBooking(@PathVariable Long bookingId) {
-        return bookingService.updateBookingStatus(bookingId, BookingStatus.CONFIRMED);
+    // Ottieni le prenotazioni dell'utente autenticato
+    @GetMapping("/user")
+    public ResponseEntity<List<Booking>> getUserBookings(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(bookingService.getUserBookings(userDetails));
     }
 
-    @PutMapping("/{bookingId}/complete")
-    public Booking completeBooking(@PathVariable Long bookingId) {
-        return bookingService.updateBookingStatus(bookingId, BookingStatus.COMPLETED);
+    // Ottieni le prenotazioni dell'utente autenticato con role NOLEGGIATORE
+    @GetMapping("/rental")
+    public ResponseEntity<List<Booking>> getBookingsForOwner(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(bookingService.getBookingsForOwner(userDetails));
     }
 
+    // Cancella una prenotazione (se appartiene all'utente autenticato)
     @DeleteMapping("/{bookingId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void cancelBooking(@PathVariable Long bookingId, @RequestParam Long userId) {
-        bookingService.cancelBooking(bookingId, userId);
+    public ResponseEntity<Void> cancelBooking(
+            @PathVariable Long bookingId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        bookingService.cancelBooking(bookingId, userDetails);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Aggiorna lo stato di una prenotazione
+    @PutMapping("/{bookingId}/status")
+    public ResponseEntity<Booking> updateStatus(
+            @PathVariable Long bookingId,
+            @RequestParam BookingStatus status) {
+        return ResponseEntity.ok(bookingService.updateBookingStatus(bookingId, status));
     }
 }
